@@ -141,10 +141,10 @@
 	}
 	ToPDF._stopFun = function(c0, c1) {  return { "/FunctionType":2, "/C0":c0, "/C1":c1, "/Domain":[0,1], "/N":1};  }
 	
-	ToPDF.prototype.PutText = function(gst,str, stw)
-	{		
+	ToPDF.prototype.PutText = function(gst,str, stw, prog)
+	{
 		this.setGState(gst, false);
-		var fi = this.addFont(gst.font.Tf);
+		var fi = this.addFont(gst.font.Tf, prog);
 		this._cont += "q ";
 		this._cont += ToPDF._mat(gst.ctm);  
 		this._cont += ToPDF._mat(gst.font.Tm);
@@ -270,13 +270,34 @@
 		for(var ii in xo) max = ii;
 		return max==null ? 0 : parseInt(max.slice(2));
 	}
-	ToPDF.prototype.addFont = function(fn) {
+	// Map an arbitrary PDF font name onto one of the 14 standard base fonts. Most
+	// PDFs reference subset-embedded fonts (e.g. "ChevinStd-Bold") that the reader
+	// won't have; normalising to a base-14 name keeps the text renderable everywhere.
+	ToPDF.toStandardFont = function(name) {
+		var n = name.toLowerCase();
+		var base = n.indexOf("sans")!=-1 ? 0 : n.indexOf("serif")!=-1 ? 4 : 0;  // Helvetica : Times
+		var bold = n.indexOf("bold")!=-1;
+		var ital = n.indexOf("italic")!=-1 || n.indexOf("oblique")!=-1 || n.endsWith("-it");
+		base += (bold&&ital) ? 3 : ital ? 2 : bold ? 1 : 0;
+		return ["Helvetica","Helvetica-Bold","Helvetica-Oblique","Helvetica-BoldOblique",
+		        "Times-Roman","Times-Bold","Times-Italic","Times-BoldItalic"][base];
+	}
+	ToPDF.prototype.addFont = function(fn, prog) {
+		var name = "/" + ToPDF.toStandardFont(fn);
 		var fs = this._res["/Font"];
-		for(var fi in fs) if(fs[fi]["/BaseFont"].slice(1)==fn) return fi;
+		for(var fi in fs) if(fs[fi]["/BaseFont"]==name) return fi;
 		var fi = "/F"+(ToPDF.maxI(fs)+1);
-		fs[fi] = {  "/Type":"/Font",  "/Subtype":"/Type1",  "/BaseFont": "/"+fn, "/Encoding":"/WinAnsiEncoding"  // Type1 supports only 1 Byte per character, otherwise use Type0 
-			////"/Encoding":"/Identity-H",  "/DescendantFonts":[{  "/BaseFont":"/"+fn,  "/CIDToGIDMap":"/Identity"  }], "/ToUnicode":{"typ":"ref",ind:4} 
-		};
+		var fd = {  "/Type":"/Font",  "/Subtype":"/Type1",  "/BaseFont": name, "/Encoding":"/WinAnsiEncoding"  };
+		if(prog!=null) {   // embed the supplied TrueType program so the PDF is self-contained
+			fd["/Subtype"] = "/TrueType";  delete fd["/Encoding"];
+			fd["/FirstChar"] = 0;  fd["/LastChar"] = 255;  fd["/Widths"] = [];
+			for(var i=0; i<256; i++) fd["/Widths"].push(500);
+			fd["/FontDescriptor"] = {  "/Type":"/FontDescriptor",  "/FontName": name,
+				"/Ascent":905, "/CapHeight":1010, "/Descent":211, "/Flags":4,
+				"/FontBBox":[-627,-376,2000,1011], "/ItalicAngle":0, "/StemV":80,
+				"/FontFile2": { stream: new Uint8Array(prog) }  };
+		}
+		fs[fi] = fd;
 		return fi;
 	}
 	ToPDF.addPage = function(xr, stm, box) {
