@@ -1,7 +1,8 @@
-# UDOC.js
-[!!! Live Demo !!!](http://www.ivank.net/veci/pdfi/)  UDOC.js is a robust document parser and converter with a very simple interface. It is used in [Photopea](https://www.Photopea.com) to load and save PS, EPS, PDF, WMF and EMF files.
+# PDFI.js
 
-If you want to render a PDF file, use [pdf.js](https://github.com/mozilla/pdf.js). For all other PDF-related operations, use UDOC.js.
+PDFI.js is a document parser and converter with a very simple interface. It loads and saves PS, EPS, PDF, WMF and EMF files.
+
+If you want to render a PDF file, use [pdf.js](https://github.com/mozilla/pdf.js). For all other PDF-related operations, use PDFI.js.
 
 <img src="interface.svg" width="50%">
 
@@ -27,10 +28,11 @@ Documents consist of pages. The parser calls `w.StartPage(...)` at the beginning
 #### `w.Stroke(gst)`
 * `gst`: Graphic State
 
-#### `w.PutText(gst, str, stw)`
+#### `w.PutText(gst, str, stw, prog)`
 * `gst` - Graphic State
 * `str` - a string to render
 * `stw` - string width (you can ignore it)
+* `prog` - optional TrueType font program (`Uint8Array`/`ArrayBuffer`) to embed for this font; omit it to reference a standard font instead
 
 #### `w.PutImage(gst, img, w, h, msk)`
 * `gst` - Graphic State
@@ -105,6 +107,10 @@ var pdf = new ToPDF();  // or new ToEMF(); to make an EMF file
 pdf.StartPage(0,0,100,100);  pdf.Fill(gst);  pdf.ShowPage();  pdf.Done();
 console.log(pdf.buffer);  // ArrayBuffer of the PDF file
 ```
+
+### Fonts
+
+`ToPDF` renders text with one of the 14 standard PDF base fonts, picked from the font name (Helvetica or Times family, with bold/italic variants). This keeps text renderable even when the document's original font isn't installed in the reader. To embed the real font instead, pass its TrueType program as the 4th argument of `PutText` (see above).
 
 The Writer ToContext2D (ToContext2D.js) can be used as a simple renderer of PS, PDF, WMF or EMF files.
 ```javascript
