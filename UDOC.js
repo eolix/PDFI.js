@@ -23,9 +23,14 @@
 			if(p.cmds.length>10) return false;
 			var cmds=p.cmds.join(""), crds=p.crds;
 			var sameRect = false;
-			if((cmds=="MLLLZ"  && crds.length== 8) 
-			 ||(cmds=="MLLLLZ" && crds.length==10) ) {
+			if((cmds=="MLLLZ"  && crds.length== 8)
+			 ||((cmds=="MLLLLZ" || cmds=="MLLLL") && crds.length==10) ) {
 				if(crds.length==10) crds=crds.slice(0,8);
+				if(bb==null) {   // derive the bounding box from the path when one isn't supplied
+					bb = [crds[0],crds[1],crds[0],crds[1]];
+					for(var R=0; R<crds.length; R+=2) {  var f=crds[R], D=crds[R+1];
+						if(f<bb[0])bb[0]=f;  if(D<bb[1])bb[1]=D;  if(bb[2]<f)bb[2]=f;  if(bb[3]<D)bb[3]=D;  }
+				}
 				var x0=bb[0],y0=bb[1],x1=bb[2],y1=bb[3];
 				if(!sameRect) sameRect = sameCrd8(crds, [x0,y0,x1,y0,x1,y1,x0,y1]);
 				if(!sameRect) sameRect = sameCrd8(crds, [x0,y1,x1,y1,x1,y0,x0,y0]);
